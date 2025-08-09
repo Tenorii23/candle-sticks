@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Advanced Candlestick Trading Simulator</title>
+</head>
+<body>
+  <style>
+     :root {
+    --bg: #0b0c0f;
+    --panel: #0f1113;
+    --accent: #22c55e;
+    --danger: #ef4444;
+    --muted: #9ca3af;
+    --text: #e5e7eb;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --panel-border: rgba(255,255,255,0.05);
+    --grid-line: rgba(255,255,255,0.06);
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+  
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
+    grid-template-rows: 60px 1fr 180px;
+    gap: 12px;
+    height: 100vh;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+  
+  header {
+    grid-column: 1 / 4;
+    background: linear-gradient(90deg, #071014, #0e1720);
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    border: 1px solid var(--panel-border);
+  }
+  
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  header .meta {
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    gap: 15px;
+  }
+  
+  .leftPanel, .rightPanel {
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 16px;
+    overflow: auto;
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  
+  .leftPanel {
+    grid-row: 2;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .main {
+    grid-row: 2;
+    grid-column: 2;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .rightPanel {
+    grid-row: 2;
+    grid-column: 3;
+  }
+  
+  .footerPanel {
+    grid-row: 3;
+    grid-column: 1 / 4;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 16px;
+    overflow: auto;
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  
+  .panelTitle {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  
+  .panelTitle::before {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  
+  button, input[type=range], select, input[type=number] {
+    background: #0b1114;
+    border: 1px solid #111;
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+  }
+  
+  button {
+    background: linear-gradient(180deg, #1a2a33, #0f1a21);
+    border: 1px solid rgba(0,0,0,0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  button:hover {
+    background: linear-gradient(180deg, #223a47, #13232d);
+    transform: translateY(-1px);
+  }
+  
+  button:active {
+    transform: translateY(1px);
+  }
+  
+  button.primary {
+    background: linear-gradient(180deg, #166534, #0c4a2a);
+    color: #fff;
+  }
+  
+  button.danger {
+    background: linear-gradient(180deg, #7f1d1d, #631717);
+    color: #fff;
+  }
+  
+  label {
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  
+  .small {
+    font-size: 12px;
+  }
+  
+  #canvasWrap {
+    flex: 1;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(180deg,#091014,#071014);
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.6);
+    border: 1px solid var(--panel-border);
+  }
+  
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  
+  #minimap {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 6px;
+    padding: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  
+  .stat {
+    font-size: 14px;
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .muted {
+    color: var(--muted);
+  }
+  
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .footer {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  
+  textarea {
+    width: 100%;
+    height: 120px;
+    background: #05070a;
+    color: var(--text);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #111;
+    font-family: monospace;
+    font-size: 12px;
+    resize: vertical;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text);
+    font-size: 13px;
+  }
+  
+  table th, table td {
+    padding: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    text-align: left;
+  }
+  
+  table th {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  
+  table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .indicator-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .indicator-group {
+    background: rgba(0,0,0,0.15);
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 8px;
+  }
+  
+  .indicator-group label {
+    margin-top: 0;
+  }
+  
+  .tab-container {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  
+  .tab {
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: rgba(0,0,0,0.2);
+    font-size: 13px;
+  }
+  
+  .tab.active {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .tab-content {
+    display: none;
+  }
+  
+  .tab-content.active {
+    display: block;
+  }
+  
+  .badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  
+  .badge.buy {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+  }
+  
+  .badge.sell {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  
+  .value-change {
+    font-weight: 600;
+  }
+  
+  .value-change.positive {
+    color: var(--success);
+  }
+  
+  .value-change.negative {
+    color: var(--danger);
+  }
+  
+  .performance-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+  }
+  
+  .metric-card {
+    background: rgba(0,0,0,0.15);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  
+  .metric-card .value {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 6px 0;
+  }
+  
+  .metric-card .label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  
+  .order-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  
+  .order-row:last-child {
+    border-bottom: none;
+  }
+  
+  .chart-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .chart-indicators {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .indicator-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--info);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .position-indicator {
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-top: 12px;
+    background: rgba(0,0,0,0.15);
+  }
+  
+  .position-indicator.long {
+    border-left: 3px solid var(--success);
+  }
+  
+  .position-indicator .label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  
+  .position-indicator .value {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  
+  .position-indicator .pl {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  
+  .slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .slider-container input[type="range"] {
+    flex: 1;
+  }
+  
+  .slider-value {
+    width: 50px;
+    text-align: right;
+  }
+  
+  .timeframe-selector {
+    display: flex;
+    gap: 4px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    padding: 4px;
+  }
+  
+  .timeframe {
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  
+  .timeframe.active {
+    background: var(--accent);
+    color: white;
+  }
+  </style>
+
+<div class="app">
+  <header>
+    <div>
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+        Advanced Candlestick Trading Simulator
+      </h1>
+      <div class="meta">
+        <span>Hold SPACE to auto-generate | Ctrl+Scroll to zoom Y | Drag to pan | B = Buy, S = Sell</span>
+      </div>
+    </div>
+    <div class="meta">
+      <span id="sessionLabel">New Session</span>
+      <span id="currentTime">00:00:00</span>
+    </div>
+  </header>
+
+  <!-- Left panel: controls -->
+  <aside class="leftPanel">
+    <div class="panelTitle">Market Controls</div>
+    
+    <div class="controls">
+      <button id="btnReset" class="danger">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2.5 2v6h6M21.5 22v-6h-6"></path>
+          <path d="M22 11.5A10 10 0 003.2 7.2M2 12.5a10 10 0 0018.8 4.2"></path>
+        </svg>
+        Reset
+      </button>
+      <button id="btnAutoFollow" class="primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 8v4l2 2"></path>
+        </svg>
+        Auto-follow: ON
+      </button>
+      <button id="btnBoost" class="primary">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"> <path d="M12 2l2.5 7.5H22l-6 4.5 2.5 7.5-6-4.5-6 4.5 2.5-7.5-6-4.5h7.5L12 2z"></path> </svg> Boost Price
+</button>
+<button id="btnBearish" class="danger">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M12 22l-2.5-7.5H2l6-4.5L3.5 7.5 9 12l6-4.5 6 4.5-2.5-7.5-7.5 4.5L12 22z"></path>
+  </svg>
+  Bearish Price
+</button>
+
+      <button id="btnExport">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Export CSV
+      </button>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab active" data-tab="market">Market</div>
+      <div class="tab" data-tab="indicators">Indicators</div>
+      <div class="tab" data-tab="orders">Orders</div>
+    </div>
+    
+    <div class="tab-content active" id="marketTab">
+      <label>Seed Price (USD)</label>
+      <input id="seedPrice" type="number" step="0.0001" value="3.3075" />
+      
+      <label>Volatility</label>
+      <div class="slider-container">
+        <input id="volSlider" type="range" min="0.0002" max="0.02" step="0.0001" value="0.003" />
+        <span class="slider-value" id="volValue">0.003</span>
+      </div>
+      
+      <label>Candle width (px)</label>
+      <div class="slider-container">
+        <input id="widthSlider" type="range" min="4" max="40" value="20" />
+        <span class="slider-value" id="widthValue">20</span>
+      </div>
+      
+      <label>Candle spacing (px)</label>
+      <div class="slider-container">
+        <input id="gapSlider" type="range" min="0" max="10" value="2" />
+        <span class="slider-value" id="gapValue">2</span>
+      </div>
+      
+      <label>Auto generate speed (ms)</label>
+      <div class="slider-container">
+        <input id="speedSlider" type="range" min="30" max="2000" step="10" value="200" />
+        <span class="slider-value" id="speedValue">200</span>
+      </div>
+      <div class="muted small">Hold <strong>Space</strong> to auto-run or click <strong>Start</strong></div>
+      
+      <div class="controls" style="margin-top:10px">
+        <button id="btnStart" class="primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Start
+        </button>
+        <button id="btnStop" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+          Stop
+        </button>
+      </div>
+      
+      <div class="timeframe-selector" style="margin-top: 12px;">
+        <div class="timeframe active">1M</div>
+        <div class="timeframe">5M</div>
+        <div class="timeframe">15M</div>
+        <div class="timeframe">1H</div>
+        <div class="timeframe">4H</div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="indicatorsTab">
+      <div class="indicator-group">
+        <label><input type="checkbox" id="showSMA" checked/> Simple Moving Average</label>
+        <div class="indicator-controls">
+          <div>
+            <label>SMA Period 1</label>
+            <input type="number" min="5" max="100" value="20" id="smaPeriod1" />
+          </div>
+          <div>
+            <label>SMA Period 2</label>
+            <input type="number" min="5" max="100" value="50" id="smaPeriod2" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="indicator-group">
+        <label><input type="checkbox" id="showEMA"/> Exponential Moving Average</label>
+        <div class="indicator-controls">
+          <div>
+            <label>EMA Period 1</label>
+            <input type="number" min="5" max="100" value="12" id="emaPeriod1" />
+          </div>
+          <div>
+            <label>EMA Period 2</label>
+            <input type="number" min="5" max="100" value="26" id="emaPeriod2" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="indicator-group">
+        <label><input type="checkbox" id="showRSI"/> Relative Strength Index (RSI)</label>
+        <div class="indicator-controls">
+          <div>
+            <label>RSI Period</label>
+            <input type="number" min="5" max="50" value="14" id="rsiPeriod" />
+          </div>
+        </div>
+      </div>
+      
+      <div class="indicator-group">
+        <label><input type="checkbox" id="showMACD"/> MACD</label>
+        <div class="indicator-controls">
+          <div>
+            <label>Fast EMA</label>
+            <input type="number" min="5" max="50" value="12" id="macdFast" />
+          </div>
+          <div>
+            <label>Slow EMA</label>
+            <input type="number" min="5" max="50" value="26" id="macdSlow" />
+          </div>
+          <div>
+            <label>Signal</label>
+            <input type="number" min="5" max="50" value="9" id="macdSignal" />
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="ordersTab">
+      <div class="position-indicator long">
+        <div class="label">CURRENT POSITION</div>
+        <div class="value">0.00 BTC</div>
+        <div class="pl">
+          <div class="stat">
+            <span>Unrealized P/L:</span>
+            <span class="value-change positive">+$0.00</span>
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 12px;">
+        <div class="panelTitle">Trade Settings</div>
+        <label>Trade Amount (USD)</label>
+        <input id="tradeAmount" type="number" step="10" value="100" />
+        
+<div class="controls" style="margin-top:12px">
+  <button id="btnBuy" class="primary">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Buy (B)
+  </button>
+  <button id="btnSell" class="danger">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Sell (S)
+  </button>
+  <button id="btnShort" class="danger">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 13l-6 6-6-6"></path>
+    </svg>
+    Short
+  </button>
+</div>
+
+      <div style="margin-top:12px">
+        <div class="panelTitle">Open Orders</div>
+        <div style="height:120px;overflow:auto">
+          <div class="order-row">
+            <div>
+              <div>Buy Limit</div>
+              <div class="small muted">3.2850</div>
+            </div>
+            <div>
+              <div>0.3 BTC</div>
+              <button class="small danger">Cancel</button>
+            </div>
+          </div>
+          <div class="order-row">
+            <div>
+              <div>Sell Stop</div>
+              <div class="small muted">3.2550</div>
+            </div>
+            <div>
+              <div>0.3 BTC</div>
+              <button class="small danger">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">Tip: Use Ctrl+Scroll to zoom vertically and mouse wheel to pan horizontally</div>
+  </aside>
+
+  <!-- Main content: canvas -->
+  <main class="main">
+    <div class="chart-controls">
+      <div>Window: <span id="windowInfo">0</span> candles | Auto-follow: <span id="autoFollowState">ON</span></div>
+      <div class="chart-indicators">
+        <div class="indicator-badge">SMA 20/50</div>
+        <div class="indicator-badge">RSI 14</div>
+        <div class="indicator-badge">MACD (12,26,9)</div>
+      </div>
+      <div class="muted">Candles: <span id="totalCandles">0</span></div>
+    </div>
+
+    <div id="canvasWrap" style="flex:1;position:relative">
+      <canvas id="chartCanvas"></canvas>
+      <canvas id="overlay" style="position:absolute;left:0;top:0;"></canvas>
+
+      <div id="minimap" style="position:absolute;right:12px;bottom:12px;width:240px;height:70px;border-radius:6px;background:rgba(0,0,0,0.4);padding:6px">
+        <canvas id="mini"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <!-- Right panel: logs, settings -->
+  <aside class="rightPanel">
+    <div class="panelTitle">Trading & Positions</div>
+    
+    <div class="stat">
+      <span>Balance:</span>
+      <span>$<span id="uiBalance">1000.00</span></span>
+    </div>
+    <div class="stat">
+      <span>Equity:</span>
+      <span>$<span id="uiEquity">1000.00</span></span>
+    </div>
+    <div class="stat">
+      <span>Current Price:</span>
+      <span>$<span id="uiPrice">0.00</span></span>
+    </div>
+    
+    <div class="performance-metrics">
+      <div class="metric-card">
+        <div class="label">Profit/Loss</div>
+        <div class="value value-change positive">+$0.00</div>
+        <div class="label">Today</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Win Rate</div>
+        <div class="value">0.00%</div>
+        <div class="label">All Trades</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Max Drawdown</div>
+        <div class="value">0.00%</div>
+        <div class="label">Risk</div>
+      </div>
+    </div>
+    
+    <div style="margin-top: 12px;">
+      <div class="panelTitle">Trade History</div>
+      <div style="height:200px;overflow:auto">
+        <table id="tradeTable">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>P/L</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge buy">BUY</span></td>
+              <td>3.3050</td>
+              <td>0.3023</td>
+              <td class="value-change positive">+$12.50</td>
+            </tr>
+            <tr>
+              <td><span class="badge sell">SELL</span></td>
+              <td>3.2850</td>
+              <td>0.1525</td>
+              <td class="value-change negative">-$3.25</td>
+            </tr>
+            <tr>
+              <td><span class="badge buy">BUY</span></td>
+              <td>3.2950</td>
+              <td>0.2021</td>
+              <td class="value-change positive">+$8.20</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Footer panel: logs, settings -->
+  <div class="footerPanel">
+    <div class="panelTitle">Session & Analysis</div>
+    
+    <div class="row" style="gap: 12px;">
+      <div style="flex: 1;">
+        <label>Session name</label>
+        <input id="sessionName" placeholder="My session" style="width:100%;" />
+      </div>
+      <div style="flex: 1;">
+        <label>Symbol</label>
+        <select id="symbolSelect" style="width:100%;">
+          <option>BTC/USD</option>
+          <option>ETH/USD</option>
+          <option>XRP/USD</option>
+          <option>LTC/USD</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="controls" style="margin-top:12px">
+      <button id="btnSave" class="primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+          <polyline points="17 21 17 13 7 13 7 21"></polyline>
+          <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        Save
+      </button>
+      <button id="btnLoad">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Load
+      </button>
+      <button id="btnClearStorage" class="danger">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+        Clear
+      </button>
+    </div>
+    
+    <div style="margin-top:12px">
+      <div class="panelTitle">Market Data</div>
+      <textarea id="csvArea" placeholder="Paste CSV data here to import..."></textarea>
+      <div class="controls" style="margin-top:8px">
+        <button id="btnImportCSV">Import CSV</button>
+        <button id="btnExportCSV">Export CSV</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="candles.js"></script>
+</body>
+</html>
